@@ -12,14 +12,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	videoUrl := os.Args[1]
+	videoURL := os.Args[1]
 
-	raw, err := extractor.GetPlayerResponseJSON(videoUrl)
+	pr, err := extractor.GetPlayerResponse(videoURL)
 	if err != nil {
 		fmt.Println("error:", err)
 		os.Exit(1)
 	}
 
-	// temporarily
-	fmt.Printf("got player response JSON: %d bytes\n", len(raw))
+	fmt.Printf("title: %s\n", pr.VideoDetails.Title)
+	fmt.Printf("progressive formats found: %d\n", len(pr.StreamingData.Formats))
+
+	format, err := extractor.Find720pProgressive(pr.StreamingData.Formats)
+	if err != nil {
+		fmt.Println("no 720p format found:", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("720p format: itag=%d mimeType=%s hasURL=%v\n",
+		format.Itag, format.MimeType, format.URL != "")
 }
