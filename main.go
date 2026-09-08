@@ -14,7 +14,13 @@ func main() {
 
 	videoURL := os.Args[1]
 
-	pr, err := extractor.GetPlayerResponse(videoURL)
+	videoID, err := extractor.ExtractVideoID(videoURL)
+	if err != nil {
+		fmt.Println("error:", err)
+		os.Exit(1)
+	}
+
+	pr, err := extractor.FetchPlayerResponseViaAPI(videoID)
 	if err != nil {
 		fmt.Println("error:", err)
 		os.Exit(1)
