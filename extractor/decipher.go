@@ -3,63 +3,65 @@ package extractor
 import (
 	"errors"
 	"regexp"
-	"strconv"
 )
 
 var ErrDecipherFuncNotFound = errors.New("decipher function not found in player JS")
 
-// Finds a function definition matching the pattern
-// YouTube uses for signature deciphering: a function taking one argument
-// that immediately does `a=a.split("")`. The function name is captured
-// since it's randomized/minified on every YouTube deploy.
+// Finds the name of the function used to decipher
+// signatures, by matching the call site where it's invoked, e.g.:
 //
-// Example match target:
+//	a.set("s",SOME_NAME(decodeURIComponent(b)))
 //
-//	fnA=function(a){a=a.split("");Xyz.aB(a,3);Xyz.reverse(a);return a.join("")}
-var decipherFuncPattern = regexp.MustCompile(
-	`([a-zA-Z0-9$]{2,})=function\(a\)\{a=a\.split\(""\)(.*?)return a\.join\(""\)\}`,
-)
+// The function name itself is randomized per YouTube deploy, so we find
+// it by context rather than by name.
+var decipherFuncNamePattern = regexp.MustCompile(`\bset\("s",\s*([a-zA-Z0-9$]+)\(`)
 
-// Finds individual operation calls within a decipher
-// function body, e.g. "Xyz.aB(a,3)" -> helper object "Xyz", method "aB",
-// numeric argument "3".
-var opCallPattern = regexp.MustCompile(`([a-zA-Z0-9$]+)\.([a-zA-Z0-9$]+)\(a,(\d+)\)`)
-
-// Represents one operation call found in the decipher function body,
-// before we know what the operation actually does.
-type rawOp struct {
-	HelperObj string
-	Method    string
-	Arg       int
+// Finds the name of the signature decipher function within the player JS.
+func extractDecipherFuncName(playerJS string) (string, error) {
+	match := decipherFuncNamePattern.FindStringSubmatch(playerJS)
+	if len(match) < 2 {
+		return "", ErrDecipherFuncNotFound
+	}
+	return match[1], nil
 }
 
-// Finds the decipher function in the player JS and
-// returns the ordered sequence of operation calls it makes.
-func extractRawOpSequence(playerJS string) ([]rawOp, error) {
-	match := decipherFuncPattern.FindStringSubmatch(playerJS)
-	if len(match) < 3 {
-		return nil, ErrDecipherFuncNotFound
+// Finds the full source text of a function given
+// its name, e.g. for name "fnA" it matches:
+//
+//	fnA=function(a){...}
+//
+// up to the matching closing brace, by tracking nesting depth.
+func extractFunctionSource(playerJS, funcName string) (string, error) {
+	marker := funcName + "=function("
+	start := indexOf(playerJS, marker)
+	if start == -1 {
+		return "", ErrDecipherFuncNotFound
 	}
 
-	body := match[2]
-
-	calls := opCallPattern.FindAllStringSubmatch(body, -1)
-	if len(calls) == 0 {
-		return nil, ErrDecipherFuncNotFound
-	}
-
-	ops := make([]rawOp, 0, len(calls))
-	for _, c := range calls {
-		arg, err := strconv.Atoi(c[3])
-		if err != nil {
-			return nil, err
+	depth := 0
+	bodyStarted := false
+	for i := start; i < len(playerJS); i++ {
+		switch playerJS[i] {
+		case '{':
+			depth++
+			bodyStarted = true
+		case '}':
+			depth--
+			if bodyStarted && depth == 0 {
+				return playerJS[start : i+1], nil
+			}
 		}
-		ops = append(ops, rawOp{
-			HelperObj: c[1],
-			Method:    c[2],
-			Arg:       arg,
-		})
 	}
 
-	return ops, nil
+	return "", ErrDecipherFuncNotFound
+}
+
+// Tiny helper to avoid importing strings just for one call.
+func indexOf(s, substr string) int {
+	for i := 0; i+len(substr) <= len(s); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
 }
