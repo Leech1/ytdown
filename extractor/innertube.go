@@ -43,6 +43,7 @@ type innertubeClient struct {
 	UserAgent     string `json:"userAgent"`
 	TimeZone      string `json:"timeZone"`
 	UTCOffset     int    `json:"utcOffsetMinutes"`
+	VisitorData   string `json:"visitorData,omitempty"`
 	// AndroidSDKVersion is deliberately omitted. Setting it
 	// signals a fuller Android client capable of stricter verification,
 	// which can trigger additional bot-check requirements.
@@ -54,6 +55,11 @@ type innertubeClient struct {
 // SABR-restricted formats.
 func FetchPlayerResponseViaAPI(videoID string) (*PlayerResponse, error) {
 	_, offsetSeconds := time.Now().Zone()
+
+	visitorData, err := fetchVisitorData()
+	if err != nil {
+		return nil, fmt.Errorf("fetching visitor data: %w", err)
+	}
 
 	reqBody := innertubeRequestBody{
 		VideoID:        videoID,
@@ -73,6 +79,7 @@ func FetchPlayerResponseViaAPI(videoID string) (*PlayerResponse, error) {
 				UserAgent:     androidUserAgent,
 				TimeZone:      "UTC",
 				UTCOffset:     offsetSeconds / 60,
+				VisitorData:   visitorData,
 			},
 		},
 	}
