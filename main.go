@@ -28,11 +28,21 @@ func main() {
 	fmt.Printf("title: %s\n", pr.VideoDetails.Title)
 	fmt.Printf("playability status: %s\n", pr.PlayabilityStatus.Status)
 	fmt.Printf("playability reason: %s\n", pr.PlayabilityStatus.Reason)
+	fmt.Printf("progressive formats: %d\n", len(pr.StreamingData.Formats))
+	fmt.Printf("adaptive formats: %d\n", len(pr.StreamingData.AdaptiveFormats))
+	for _, f := range pr.StreamingData.AdaptiveFormats {
+		fmt.Printf("  itag=%d quality=%s mime=%s hasURL=%v hasCipher=%v\n",
+			f.Itag, f.QualityLabel, f.MimeType, f.URL != "", f.SignatureCipher != "")
+	}
+	for _, f := range pr.StreamingData.Formats {
+		fmt.Printf("  [progressive] itag=%d quality=%s mime=%s hasURL=%v hasCipher=%v\n",
+			f.Itag, f.QualityLabel, f.MimeType, f.URL != "", f.SignatureCipher != "")
+	}
 
 	// Look for itag 136 (720p video-only mp4) in adaptive formats.
 	var target *extractor.Format
 	for i, f := range pr.StreamingData.AdaptiveFormats {
-		if f.Itag == 136 {
+		if f.Itag == 298 {
 			target = &pr.StreamingData.AdaptiveFormats[i]
 			break
 		}
