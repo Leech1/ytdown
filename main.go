@@ -26,6 +26,8 @@ func main() {
 		os.Exit(1)
 	}
 	fmt.Printf("title: %s\n", pr.VideoDetails.Title)
+	fmt.Printf("playability status: %s\n", pr.PlayabilityStatus.Status)
+	fmt.Printf("playability reason: %s\n", pr.PlayabilityStatus.Reason)
 
 	// Look for itag 136 (720p video-only mp4) in adaptive formats.
 	var target *extractor.Format

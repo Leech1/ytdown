@@ -11,7 +11,7 @@ import (
 
 const innertubeAPIKey = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"
 
-const innertubePlayerURL = "https://www.youtube.com/youtubei/v1/player?key=" + innertubeAPIKey
+const innertubePlayerURL = "https://www.youtube.com/youtubei/v1/player"
 
 const androidUserAgent = "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip"
 
@@ -74,9 +74,9 @@ func FetchPlayerResponseViaAPI(videoID string) (*PlayerResponse, error) {
 			Client: innertubeClient{
 				HL:            "en",
 				GL:            "US",
-				ClientName:    "WEB",
-				ClientVersion: "2.20250101.00.00",
-				UserAgent:     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+				ClientName:    "ANDROID_VR",
+				ClientVersion: "1.65.10",
+				UserAgent:     "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
 				TimeZone:      "UTC",
 				UTCOffset:     offsetSeconds / 60,
 				VisitorData:   visitorData,
@@ -94,7 +94,7 @@ func FetchPlayerResponseViaAPI(videoID string) (*PlayerResponse, error) {
 		return nil, fmt.Errorf("building request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("User-Agent", "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip")
 	req.AddCookie(&http.Cookie{
 		Name:   "CONSENT",
 		Value:  "YES+cb.20210328-17-p0.en+FX+100",

@@ -1,8 +1,11 @@
 package extractor
 
+import "encoding/json"
+
 type PlayerResponse struct {
-	StreamingData StreamingData `json:"streamingData"`
-	VideoDetails  VideoDetails  `json:"videoDetails"`
+	StreamingData     StreamingData     `json:"streamingData"`
+	VideoDetails      VideoDetails      `json:"videoDetails"`
+	PlayabilityStatus PlayabilityStatus `json:"playabilityStatus"`
 }
 
 type VideoDetails struct {
@@ -30,4 +33,10 @@ type Format struct {
 	// SignatureCipher is set instead of URL when the stream URL is
 	// cipher-protected and needs to be deobfuscated before use.
 	SignatureCipher string `json:"signatureCipher"`
+}
+
+type PlayabilityStatus struct {
+	Status      string          `json:"status"`
+	Reason      string          `json:"reason"`
+	ErrorScreen json.RawMessage `json:"errorScreen,omitempty"`
 }
