@@ -6,22 +6,29 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
-// innertubeAPIKey is YouTube's public InnerTube API key, embedded in
-// every web client and safe to hardcode (it's not a secret, just an
-// identifier — YouTube's own web player ships it in plain JS).
 const innertubeAPIKey = "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"
 
 const innertubePlayerURL = "https://www.youtube.com/youtubei/v1/player?key=" + innertubeAPIKey
 
-// innertubeRequestBody mirrors the minimal JSON body YouTube's InnerTube
-// API expects. We declare an Android client context, since the web
-// client is increasingly restricted to SABR-only streaming and omits
-// direct/cipherable format URLs.
+const androidUserAgent = "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip"
+
 type innertubeRequestBody struct {
-	VideoID string           `json:"videoId"`
-	Context innertubeContext `json:"context"`
+	VideoID         string           `json:"videoId"`
+	Context         innertubeContext `json:"context"`
+	ContentCheckOK  bool             `json:"contentCheckOk"`
+	RacyCheckOK     bool             `json:"racyCheckOk"`
+	PlaybackContext playbackContext  `json:"playbackContext"`
+}
+
+type playbackContext struct {
+	ContentPlaybackContext contentPlaybackContext `json:"contentPlaybackContext"`
+}
+
+type contentPlaybackContext struct {
+	HTML5Preference string `json:"html5Preference"`
 }
 
 type innertubeContext struct {
@@ -29,9 +36,16 @@ type innertubeContext struct {
 }
 
 type innertubeClient struct {
-	ClientName        string `json:"clientName"`
-	ClientVersion     string `json:"clientVersion"`
-	AndroidSDKVersion int    `json:"androidSdkVersion,omitempty"`
+	HL            string `json:"hl"`
+	GL            string `json:"gl"`
+	ClientName    string `json:"clientName"`
+	ClientVersion string `json:"clientVersion"`
+	UserAgent     string `json:"userAgent"`
+	TimeZone      string `json:"timeZone"`
+	UTCOffset     int    `json:"utcOffsetMinutes"`
+	// AndroidSDKVersion is deliberately omitted. Setting it
+	// signals a fuller Android client capable of stricter verification,
+	// which can trigger additional bot-check requirements.
 }
 
 // Requests the player response directly from
@@ -39,13 +53,26 @@ type innertubeClient struct {
 // returns real, cipherable format URLs instead of the web client's
 // SABR-restricted formats.
 func FetchPlayerResponseViaAPI(videoID string) (*PlayerResponse, error) {
+	_, offsetSeconds := time.Now().Zone()
+
 	reqBody := innertubeRequestBody{
-		VideoID: videoID,
+		VideoID:        videoID,
+		ContentCheckOK: true,
+		RacyCheckOK:    true,
+		PlaybackContext: playbackContext{
+			ContentPlaybackContext: contentPlaybackContext{
+				HTML5Preference: "HTML5_PREF_WANTS",
+			},
+		},
 		Context: innertubeContext{
 			Client: innertubeClient{
-				ClientName:        "ANDROID",
-				ClientVersion:     "19.09.37",
-				AndroidSDKVersion: 30,
+				HL:            "en",
+				GL:            "US",
+				ClientName:    "ANDROID",
+				ClientVersion: "19.09.37",
+				UserAgent:     androidUserAgent,
+				TimeZone:      "UTC",
+				UTCOffset:     offsetSeconds / 60,
 			},
 		},
 	}
@@ -60,7 +87,13 @@ func FetchPlayerResponseViaAPI(videoID string) (*PlayerResponse, error) {
 		return nil, fmt.Errorf("building request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip")
+	req.Header.Set("User-Agent", androidUserAgent)
+	req.AddCookie(&http.Cookie{
+		Name:   "CONSENT",
+		Value:  "YES+cb.20210328-17-p0.en+FX+100",
+		Path:   "/",
+		Domain: ".youtube.com",
+	})
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -69,7 +102,8 @@ func FetchPlayerResponseViaAPI(videoID string) (*PlayerResponse, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("unexpected status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	respBytes, err := io.ReadAll(resp.Body)
