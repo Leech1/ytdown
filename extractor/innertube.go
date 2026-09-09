@@ -74,9 +74,9 @@ func FetchPlayerResponseViaAPI(videoID string) (*PlayerResponse, error) {
 			Client: innertubeClient{
 				HL:            "en",
 				GL:            "US",
-				ClientName:    "ANDROID",
-				ClientVersion: "19.09.37",
-				UserAgent:     androidUserAgent,
+				ClientName:    "WEB",
+				ClientVersion: "2.20250101.00.00",
+				UserAgent:     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
 				TimeZone:      "UTC",
 				UTCOffset:     offsetSeconds / 60,
 				VisitorData:   visitorData,
@@ -94,7 +94,7 @@ func FetchPlayerResponseViaAPI(videoID string) (*PlayerResponse, error) {
 		return nil, fmt.Errorf("building request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", androidUserAgent)
+	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 	req.AddCookie(&http.Cookie{
 		Name:   "CONSENT",
 		Value:  "YES+cb.20210328-17-p0.en+FX+100",
