@@ -15,7 +15,7 @@ func GetPlayerResponseJSON(videoURL string) (string, error) {
 	return extractPlayerResponseJSON(html)
 }
 
-// GetPlayerResponse fetches the watch page for videoID and returns the
+// Fetches the watch page for videoID and returns the
 // parsed PlayerResponse, including available stream formats.
 func GetPlayerResponse(videoURL string) (*PlayerResponse, error) {
 	raw, err := GetPlayerResponseJSON(videoURL)
@@ -29,4 +29,20 @@ func GetPlayerResponse(videoURL string) (*PlayerResponse, error) {
 	}
 
 	return &pr, nil
+}
+
+// Fetches the watch page for videoURL, locates the player JS
+// file referenced in it, and returns the JS file's full source.
+func GetPlayerJS(videoURL string) (string, error) {
+	html, err := fetchWatchPage(videoURL)
+	if err != nil {
+		return "", fmt.Errorf("fetching watch page: %w", err)
+	}
+
+	jsURL, err := extractPlayerJSURL(html)
+	if err != nil {
+		return "", fmt.Errorf("finding player JS URL: %w", err)
+	}
+
+	return fetchPlayerJS(jsURL)
 }
