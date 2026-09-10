@@ -5,17 +5,13 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 )
 
 const userAgent = "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip"
-
-// chunkSize is the size of each bounded range request. YouTube's video
-// servers reject fully open-ended range requests (bytes=0-) but accept
-// bounded ones, so we fetch the file in fixed-size chunks and append them.
 const chunkSize = 10 * 1024 * 1024 // 10MB
+const chunkDelay = 500 * time.Millisecond
 
-// DownloadToFile streams the content at streamURL into a file at destPath,
-// fetching it in bounded range chunks.
 func DownloadToFile(streamURL, destPath string) error {
 	out, err := os.Create(destPath)
 	if err != nil {
@@ -24,8 +20,14 @@ func DownloadToFile(streamURL, destPath string) error {
 	defer out.Close()
 
 	var start int64 = 0
+	first := true
 
 	for {
+		if !first {
+			time.Sleep(chunkDelay)
+		}
+		first = false
+
 		end := start + chunkSize - 1
 
 		req, err := http.NewRequest(http.MethodGet, streamURL, nil)
@@ -52,7 +54,6 @@ func DownloadToFile(streamURL, destPath string) error {
 			return fmt.Errorf("writing chunk at offset %d: %w", start, err)
 		}
 
-		// If we got fewer bytes than requested, we've reached the end of the file.
 		if n < chunkSize {
 			break
 		}
