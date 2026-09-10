@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"ytdown/downloader"
 	"ytdown/extractor"
 )
 
@@ -65,4 +66,39 @@ func main() {
 	}
 
 	fmt.Println("resolved URL:", finalURL)
+
+	audioFormat := findFormat(pr.StreamingData.AdaptiveFormats, 140) // mp4/aac audio
+	if audioFormat == nil {
+		fmt.Println("itag 140 not found")
+		os.Exit(1)
+	}
+
+	audioURL, err := extractor.ResolveFormatURL(*audioFormat, playerJS)
+	if err != nil {
+		fmt.Println("error resolving audio URL:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("downloading video...")
+	if err := downloader.DownloadToFile(finalURL, "video.mp4"); err != nil {
+		fmt.Println("error downloading video:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("downloading audio...")
+	if err := downloader.DownloadToFile(audioURL, "audio.mp4"); err != nil {
+		fmt.Println("error downloading audio:", err)
+		os.Exit(1)
+	}
+
+	fmt.Println("done")
+}
+
+func findFormat(formats []extractor.Format, itag int) *extractor.Format {
+	for i, f := range formats {
+		if f.Itag == itag {
+			return &formats[i]
+		}
+	}
+	return nil
 }
