@@ -42,9 +42,9 @@ func main() {
 
 	// Look for itag 136 (720p video-only mp4) in adaptive formats.
 	var target *extractor.Format
-	for i, f := range pr.StreamingData.AdaptiveFormats {
-		if f.Itag == 298 {
-			target = &pr.StreamingData.AdaptiveFormats[i]
+	for i, f := range pr.StreamingData.Formats {
+		if f.Itag == 18 {
+			target = &pr.StreamingData.Formats[i]
 			break
 		}
 	}

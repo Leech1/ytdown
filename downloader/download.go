@@ -37,6 +37,8 @@ func DownloadToFile(streamURL, destPath string) error {
 			break
 		}
 		start += chunkSize
+
+		time.Sleep(3 * time.Second) // TEMP: test if pacing avoids the 403
 	}
 
 	return nil
